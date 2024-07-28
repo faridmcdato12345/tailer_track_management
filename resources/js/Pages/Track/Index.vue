@@ -1,0 +1,174 @@
+<template>
+
+    <Head title="Track Tractor" />
+
+    <AuthenticatedLayout>
+        <div class="pl-12 pr-4 py-4">
+            <DataTable :data="props.rooms.data" :columns="columns" :pagination="props.rooms" @limit-query="limitQuery"
+                @search-field-query="searchFieldQuery" @delete="deleteData" @edit="editData"
+                :query-limit="props.queryLimit" :route-create="createRoute" :query-name="props.queryName" :action="true"
+                :activity="true" @activities="showActivities" />
+        </div>
+    </AuthenticatedLayout>
+</template>
+
+<script setup>
+import DangerButton from "@/Components/DangerButton.vue";
+import TextInput from "@/Components/TextInput.vue";
+import InputLabel from "@/Components/InputLabel.vue";
+import Modal from "@/Components/Modal.vue";
+import PrimaryButton from "@/Components/PrimaryButton.vue";
+import DataTable from "@/Components/DataTable.vue";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
+import { ref, computed, onMounted } from "vue"
+import { router, Head, useForm, usePage } from "@inertiajs/vue3";
+import useData from '@/Composables/useData'
+
+
+const { isLoading, error, storeItem, fetchItem, updateItem } = useData()
+const showModal = ref(false)
+const showModalEdit = ref(false)
+const itemId = ref('')
+const selectedMotel = ref('')
+
+const page = usePage();
+const userRoles = computed(() => page.props.userRoles);
+const userPermissions = computed(() => page.props.userPermissions);
+console.log("userRoles: ", userRoles)
+console.log("userPermissions: ", userPermissions)
+
+
+const formFields = [
+    {
+        name: 'name',
+        label: 'Name',
+        type: 'text',
+        select: false
+    },
+];
+
+const formData = useForm({
+    tractor_number: '',
+    is_occupied: 0,
+    maximum_capacity: '',
+    status: 'Available'
+})
+const closeModal = () => {
+    formData.reset()
+    showModalEdit.value = false
+    showModal.value = false
+}
+const showActivities = (index) => {
+    console.log(index)
+    router.get(route('track.activity', index))
+}
+const columns = ref([
+    { label: 'TRACTOR NUMBER', key: 'tractor_number' },
+    { label: 'MAXIMUM CAPACITY', key: 'maximum_capacity' },
+    { label: 'CURRENT STATUS', key: 'status' },
+])
+const props = defineProps({
+    rooms: {
+        type: Object,
+    },
+    roomTypes: {
+        type: Object
+    },
+    rates: {
+        types: Object
+    },
+    queryLimit: Number
+})
+const handleSubmit = async () => {
+    const result = await storeItem('rooms', formData)
+    if (result.success) {
+        router.get(route('rooms.index'), {
+            preserveState: true,
+            preserveScroll: true
+        })
+        console.log("success storing")
+    } else {
+        console.log("error storing: ", error)
+    }
+}
+const handleUpdate = async () => {
+    const result = await updateItem(`/room_update_via_form/${itemId.value}`, formData)
+    if (result.success) {
+        router.get(route('rooms.index'), {
+            preserveState: true,
+            preserveScroll: true
+        })
+    } else {
+        router.get(route('rooms.index'), {
+            preserveState: true,
+            preserveScroll: true
+        })
+        console.log(result.error)
+    }
+}
+const editData = async (id) => {
+    itemId.value = id
+    const result = await fetchItem(`rooms/${id}`)
+    console.log(result)
+    if (result.success) {
+        formData.room_number = result.data.room_number
+        formData.maximum_capacity = result.data.maximum_capacity
+        formData.status = result.data.status
+        showModalEdit.value = true
+    } else {
+        console.log(result.error)
+    }
+
+}
+const limitQuery = (name, e) => {
+    let qParams = {}
+    let nParams = {}
+    let params = {}
+    if (props.queryName) {
+        nParams['name'] = props.queryName
+        qParams[name] = e
+
+        params = { ...qParams, ...nParams }
+    } else if (!props.queryName) {
+        qParams[name] = e
+        params = qParams
+    } else {
+        delete qParams[name]
+        delete nParams['name']
+    }
+    router.get(route('rooms.index', params))
+}
+const searchFieldQuery = (name, e) => {
+    let qParams = {}
+    let nParams = {}
+    let params = {}
+    if (props.queryLimit) {
+        nParams[name] = e
+        qParams['query'] = props.queryLimit
+
+        params = { ...nParams, ...qParams }
+    } else if (!props.queryLimit) {
+        nParams[name] = e
+        params = nParams
+    } else {
+        delete qParams[name]
+        delete nParams['name']
+    }
+    router.get(route('rooms.index', params))
+}
+const deleteData = (id) => {
+    if (confirm('Are you sure you want to delete this room?')) {
+        router.delete(route('rooms.destroy', id), {
+            preserveState: true
+        })
+    }
+
+}
+onMounted(() => {
+    console.log(props.rooms)
+    console.log(props.roomTypes)
+    console.log(props.rates)
+})
+</script>
+
+<style lang="scss" scoped></style>

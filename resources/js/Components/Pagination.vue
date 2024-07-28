@@ -1,0 +1,25 @@
+<template lang="">
+    <nav class="mt-4 w-full text-right">
+        <Link
+        preserveScroll
+        :href="[link.url ?? '']"
+        :key="link.label"
+        v-for="link in links" 
+        v-html="link.label"
+        class="inline-block py-2 px-3 rounded-lg dark:text-gray-200 text-xs text-gray-950"
+        :class="[
+            {'bg-gray-950 !text-gray-200': link.active},
+            [!link.url ? '!text-gray-500 cursor-not-allowed' : 'hover:dark:bg-gray-950 hover:bg-gray-950 hover:text-gray-200']
+            ]" />
+    </nav>
+</template>
+<script setup>
+import { Link } from '@inertiajs/vue3';
+defineProps({
+    links: Object,
+    required: false
+})
+</script>
+<style lang="">
+
+</style>
